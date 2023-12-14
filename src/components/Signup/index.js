@@ -1,6 +1,9 @@
 // RegistrationForm.js
-import Cookies from "js-cookie";
+
 import React, { useState } from "react";
+import { v4 as uuid } from "uuid";
+
+let usersDataList = [];
 
 const Signup = (props) => {
   const [formData, setFormData] = useState({
@@ -12,7 +15,6 @@ const Signup = (props) => {
     showErrorMessage: false,
     errorMessage: "",
   });
-
   const onChangeFirstName = (event) => {
     setFormData({ ...formData, firstName: event.target.value });
   };
@@ -29,42 +31,55 @@ const Signup = (props) => {
     setFormData({ ...formData, confirmPassword: event.target.value });
   };
 
-  const onSuccessfullSignup = () => {
-    const { history } = props;
-    history.replace("/login");
-  };
-
-  const onFailureSignup = (data) => {
-    setFormData({
-      ...formData,
-      showErrorMessage: true,
-      errorMessage: data.message,
-    });
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const { history } = props;
+    setFormData({ ...formData, showErrorMessage: false });
+    const usersList = localStorage.getItem("usersList");
+    let parsedUsersList = JSON.parse(usersList);
 
-    const signupDetails = {
-      name: formData.firstName,
+    const userDetails = {
+      userId: uuid(),
+      name: formData.firstName + " " + formData.lastName,
       email: formData.email,
       password: formData.password,
     };
-    const apiURL =
-      "http://restapi.adequateshop.com/api/authaccount/registration";
-    const options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(signupDetails),
-    };
-    const response = await fetch(apiURL, options);
-    const data = await response.json();
-    if (response.ok === true) {
-      onSuccessfullSignup(data);
+    if (parsedUsersList === null) {
+      if (formData.password === formData.confirmPassword) {
+        usersDataList.push(userDetails);
+        localStorage.setItem("usersList", JSON.stringify(usersDataList));
+        history.replace("/");
+      } else {
+        setFormData({
+          ...formData,
+          showErrorMessage: true,
+          errorMessage: "Password did not match",
+        });
+      }
     } else {
-      onFailureSignup(data);
+      usersDataList = parsedUsersList;
+      const isUserIn = usersDataList.find(
+        (eachUser) => eachUser.email === formData.email
+      );
+      if (isUserIn === undefined) {
+        if (formData.password === formData.confirmPassword) {
+          usersDataList.push(userDetails);
+          localStorage.setItem("usersList", JSON.stringify(usersDataList));
+          history.replace("/");
+        } else {
+          setFormData({
+            ...formData,
+            showErrorMessage: true,
+            errorMessage: "Password did not match",
+          });
+        }
+      } else {
+        setFormData({
+          ...formData,
+          showErrorMessage: true,
+          errorMessage: "Email already exist",
+        });
+      }
     }
   };
 
@@ -171,7 +186,9 @@ const Signup = (props) => {
             Sign Up
           </button>
         </div>
-        {formData.showErrorMessage && <p>{formData.errorMessage}</p>}
+        {formData.showErrorMessage && (
+          <p className="text-red-500 mt-3">*{formData.errorMessage}</p>
+        )}
       </form>
     </div>
   );

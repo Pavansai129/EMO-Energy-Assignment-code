@@ -25,44 +25,41 @@ const Login = (props) => {
     setUserDetails({ ...userDetails, userPassword: event.target.value });
   };
 
-  const onSuccessfulLogin = (data) => {
-    const { history } = props;
-    Cookies.set("access_token", data.Token, { expires: 30 });
-    history.replace("/");
-  };
-
-  const onFailureLogin = (data) => {
-    setUserDetails({
-      ...userDetails,
-      showErrorMessage: true,
-      errorMessage: data.message,
-    });
-  };
-
   const onClickLogin = async (event) => {
     event.preventDefault();
-    const userLoginDetails = {
-      email: userDetails.userMail,
-      password: userDetails.userPassword,
-    };
-    const options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+    setUserDetails({ ...userDetails, showErrorMessage: false });
 
-      body: JSON.stringify(userLoginDetails),
-    };
-
-    const apiUrl = "http://restapi.adequateshop.com/api/authaccount/login";
-    const response = await fetch(apiUrl, options);
-    const data = await response.json();
-    console.log(data);
-    console.log(response);
-    if (data.data !== null) {
-      onSuccessfulLogin(data);
+    const localUsersList = localStorage.getItem("usersList");
+    const parsedUsersList = JSON.parse(localUsersList);
+    if (parsedUsersList === null) {
+      setUserDetails({
+        ...userDetails,
+        showErrorMessage: true,
+        errorMessage: "User did not exist",
+      });
     } else {
-      onFailureLogin(data);
+      const isUserIn = parsedUsersList.find(
+        (eachUser) => eachUser.email === userDetails.userMail
+      );
+      if (isUserIn === undefined) {
+        setUserDetails({
+          ...userDetails,
+          showErrorMessage: true,
+          errorMessage: "User not registered",
+        });
+      } else {
+        if (isUserIn.password === userDetails.userPassword) {
+          const { history } = props;
+          Cookies.set("access_token", isUserIn.userId, { expires: 30 });
+          history.replace("/");
+        } else {
+          setUserDetails({
+            ...userDetails,
+            showErrorMessage: true,
+            errorMessage: "Password is incorrect",
+          });
+        }
+      }
     }
   };
 
@@ -145,11 +142,16 @@ const Login = (props) => {
                 Log in
               </button>
             </div>
-            {userDetails.showErrorMessage && <p>{userDetails.errorMessage}</p>}
+            {userDetails.showErrorMessage && (
+              <p className="text-red-500">*{userDetails.errorMessage}</p>
+            )}
           </form>
 
           <p className="mt-10 text-center text-sm text-gray-500">
-            Not a member? <Link to="/signup">Sign up here</Link>
+            Not a member?{" "}
+            <Link to="/signup" className="text-blue-500 font-bold">
+              Sign up here
+            </Link>
           </p>
         </div>
       </div>
